@@ -2,17 +2,11 @@
 
 ![CI](https://github.com/skylerblue333/Py-CLI-Tool/workflows/CI/badge.svg)
 
-Production-ready backend service for tool operations.
-
-## Architecture
-- **API Framework**: FastAPI
-- **Concurrency**: Asyncio event loop
-- **Testing**: Pytest with 100% coverage
-- **Deployment**: Docker containerized
+API backend for CLI configuration management built with FastAPI.
 
 ## Quick Start
 ```bash
 pip install -r requirements.txt
-pytest tests/ -v
+pytest tests/
 uvicorn src.main:app --reload
 ```

@@ -1,34 +1,29 @@
-from fastapi import FastAPI
-import asyncio
+"""
+Py-CLI-Tool: API backend for CLI configuration management
+"""
 import time
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 
-app = FastAPI(title="Py-CLI-Tool API", version="2.0.0")
+app = FastAPI(title="Py-CLI-Tool", version="3.0.0")
 
-class Processor:
-    def __init__(self):
-        self.ready = False
-        self.items_processed = 0
-        
-    async def initialize(self):
-        await asyncio.sleep(0.1)
-        self.ready = True
-        
-    def process(self, data: dict) -> dict:
-        if not self.ready:
-            raise RuntimeError("Not initialized")
-        self.items_processed += 1
-        return {"status": "success", "processed": True, "domain": "tool", "data": data}
+configs = {}
+class Config(BaseModel):
+    key: str
+    value: str
 
-processor = Processor()
+@app.put("/api/v1/config")
+def set_config(c: Config):
+    configs[c.key] = c.value
+    return {"status": "saved", "key": c.key}
 
-@app.on_event("startup")
-async def startup():
-    await processor.initialize()
+@app.get("/api/v1/config/{key}")
+def get_config(key: str):
+    if key not in configs:
+        raise HTTPException(status_code=404, detail="Key not found")
+    return {"key": key, "value": configs[key]}
+
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "ready": processor.ready, "processed": processor.items_processed}
-
-@app.post("/api/v1/process")
-def process_data(payload: dict):
-    return processor.process(payload)
+    return {"status": "healthy", "service": "Py-CLI-Tool", "timestamp": int(time.time())}
