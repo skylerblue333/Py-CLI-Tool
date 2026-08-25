@@ -1,16 +1,61 @@
-from fastapi.testclient import TestClient
-from src.main import app
+import hashlib
+import json
 
-client = TestClient(app)
+from typer.testing import CliRunner
 
-def test_health():
-    response = client.get("/health")
-    assert response.status_code == 200
-    assert response.json()["status"] == "healthy"
+from cli import app
 
-def test_config():
-    client.put("/api/v1/config", json={"key": "theme", "value": "dark"})
-    r = client.get("/api/v1/config/theme")
-    assert r.status_code == 200
-    assert r.json()["value"] == "dark"
+runner = CliRunner()
 
+
+def test_health_and_version() -> None:
+    health = runner.invoke(app, ["health"])
+    assert health.exit_code == 0
+    assert json.loads(health.stdout)["status"] == "ok"
+
+    version = runner.invoke(app, ["version"])
+    assert version.exit_code == 0
+    assert json.loads(version.stdout)["version"] == "0.1.0"
+
+
+def test_sha256(tmp_path) -> None:
+    target = tmp_path / "artifact.txt"
+    target.write_bytes(b"skycoin4444\n")
+    result = runner.invoke(app, ["sha256", str(target)])
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["sha256"] == hashlib.sha256(b"skycoin4444\n").hexdigest()
+    assert payload["bytes"] == 12
+
+
+def test_json_check_and_invalid_json(tmp_path) -> None:
+    target = tmp_path / "manifest.json"
+    target.write_text('{"b":2,"a":1}', encoding="utf-8")
+    result = runner.invoke(app, ["json-check", str(target)])
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["valid"] is True
+    assert payload["keys"] == ["a", "b"]
+
+    broken = tmp_path / "broken.json"
+    broken.write_text("{", encoding="utf-8")
+    failure = runner.invoke(app, ["json-check", str(broken)])
+    assert failure.exit_code != 0
+    assert "invalid JSON" in failure.output
+
+
+def test_text_stats(tmp_path) -> None:
+    target = tmp_path / "notes.txt"
+    target.write_text("one two\nthree\n", encoding="utf-8")
+    result = runner.invoke(app, ["text-stats", str(target)])
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["lines"] == 2
+    assert payload["words"] == 3
+    assert payload["characters"] == 14
+
+
+def test_missing_file_rejected(tmp_path) -> None:
+    result = runner.invoke(app, ["sha256", str(tmp_path / "missing")])
+    assert result.exit_code != 0
+    assert "existing file" in result.output
