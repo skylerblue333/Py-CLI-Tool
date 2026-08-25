@@ -66,7 +66,7 @@ def json_check(path: Path) -> None:
         "type": type(value).__name__,
     }
     if isinstance(value, dict):
-        summary["keys"] = sorted(str(key) for key in value.keys())[:100]
+        summary["keys"] = sorted(str(key) for key in value)[:100]
         summary["keyCount"] = len(value)
     elif isinstance(value, list):
         summary["items"] = len(value)
