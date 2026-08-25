@@ -1,44 +1,46 @@
-<!-- PORTFOLIO PROJECT PROFILE: maintained by the repository owner -->
+# Sky Artifact CLI
 
-## Project profile and code-audit snapshot
+**Status: engineering beta.** A local-only Python CLI for bounded artifact inspection without network access or arbitrary code execution.
 
-**What this is:** **Py-CLI-Tool** is a public repository described as: “Command-line interface for system administration. #SkyCoin4444 #AI #Blockchain #DevOps #Innovation” Its dominant language signals are **Python (4 files)**.
+## Commands
 
-**Why it has value:** Its value is best understood through the implementation evidence currently present in the repository: **18 tracked files** were observed in the shallow audit, with the source structure and existing documentation providing the project’s specific context. This README does not treat a prototype, experiment, or archive as a production system without supporting evidence.
+- `health` — verifies the CLI entrypoint
+- `version` — prints the current engineering-beta version
+- `sha256 PATH` — streams a bounded local file and emits its SHA-256 digest
+- `json-check PATH` — validates UTF-8 JSON and emits a small structural summary
+- `text-stats PATH` — emits byte, character, line, and word counts for UTF-8 text
 
-**Implementation evidence:** 2 test-related file(s) detected; 2 dependency or package manifest(s) detected; 2 build/CI/infrastructure signal(s) detected; and 3 documentation or governance file(s) detected. Test filenames observed include `tests/__init__.py`, `tests/test_main.py`. Dependency or package files include `package.json`, `requirements.txt`. Build, CI, or infrastructure signals include `Dockerfile`, `.github/workflows/ci.yml`.
+All output is compact JSON so the CLI can be consumed by scripts and CI pipelines.
 
-**Current status:** The repository is tracked on the `main` branch. The existing source tree, configuration, tests, workflows, and documentation remain authoritative for supported behavior and maturity. A code audit is not a production-readiness certification, and the presence of a test or workflow file does not establish that all checks pass.
+## Safety boundary
 
-**Relationship to the wider portfolio:** This repository is one focused component of the broader Skyler Blue Spillers portfolio across AI, software engineering, cloud and DevOps, cybersecurity, blockchain, finance, education, social systems, and creative work. It may provide a service boundary, implementation pattern, experiment, archive, or reusable idea for related repositories. Treat repositories as technical dependencies only where documented interfaces and verified project requirements support that relationship.
+Files must exist and be regular files. Inspection is capped at 64 MiB. The CLI does not make network calls, run shell commands, import plugins, deserialize executable formats, follow a remote URL, or modify inspected files.
 
-**Quality and security note:** No obvious secret-like pattern was detected by the limited static scan; this is not a substitute for a security audit. No TODO/FIXME marker was detected in the scanned text files.
+## Run
 
----
+```bash
+python -m pip install -r requirements-dev.txt
+pytest -q
+python cli.py sha256 README.md
+python cli.py json-check package.json
+python cli.py text-stats README.md
+```
 
-# Py Cli Tool
+Container:
 
-![GitHub stars](https://img.shields.io/github/stars/skylerblue333/Py-CLI-Tool?style=flat-square)
-![GitHub license](https://img.shields.io/github/license/skylerblue333/Py-CLI-Tool?style=flat-square)
+```bash
+docker build -t sky-artifact-cli .
+docker run --rm sky-artifact-cli health
+```
 
-## 🌟 Overview
-**Py-CLI-Tool** is a professional-grade project within the **SkyCoin4444** ecosystem. It focuses on delivering high-value solutions in the domain of **Python**.
+The runtime image executes as a non-root UID.
 
-## 🚀 Key Features
-- **Scalable Architecture**: Designed for enterprise-level growth and performance.
-- **Modern Standards**: Implements best practices for clean code and maintainability.
-- **Robust Integration**: Built to work seamlessly within modern cloud-native environments.
+## SKYCOIN4444 integration
 
-## 🛠️ Technology Stack
-- **Primary Domain**: Python
-- **Ecosystem**: SkyCoin4444 Digital Platform
+Use this as a small developer/CI utility for verifying local build artifacts, manifests, configuration JSON, documentation, or generated files. It should complement—not replace—format-specific validators, cryptographic signing, malware scanning, SBOM tooling, or provenance systems.
 
-## 📂 Structure
-The project is organized into a modular structure to ensure clarity and ease of development.
+## Limitations
 
-## 👨‍💻 Author
-**Skyler Blue Spillers**
-*Professional Chess Player & Software Engineer*
+This repository is not a system-administration shell, malware scanner, secret scanner, package verifier, code-signing system, or remote artifact service. SHA-256 output proves only the bytes hashed by the caller; authenticity requires a separately trusted signature or provenance system.
 
----
-*Powered by SkyCoin4444*
+See `SECURITY.md` and `CHANGELOG.md` for product boundaries.
