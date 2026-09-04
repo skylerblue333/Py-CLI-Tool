@@ -3,6 +3,7 @@ import json
 
 from typer.testing import CliRunner
 
+import cli
 from cli import app
 
 runner = CliRunner()
@@ -44,6 +45,15 @@ def test_json_check_and_invalid_json(tmp_path) -> None:
     assert "invalid JSON" in failure.output
 
 
+def test_json_check_rejects_nonstandard_constants(tmp_path) -> None:
+    for token in ("NaN", "Infinity", "-Infinity"):
+        target = tmp_path / f"bad-{token.replace('-', 'minus')}.json"
+        target.write_text(f'{{"value":{token}}}', encoding="utf-8")
+        result = runner.invoke(app, ["json-check", str(target)])
+        assert result.exit_code != 0
+        assert "invalid JSON" in result.output
+
+
 def test_text_stats(tmp_path) -> None:
     target = tmp_path / "notes.txt"
     target.write_text("one two\nthree\n", encoding="utf-8")
@@ -53,6 +63,16 @@ def test_text_stats(tmp_path) -> None:
     assert payload["lines"] == 2
     assert payload["words"] == 3
     assert payload["characters"] == 14
+
+
+def test_read_limit_is_enforced_from_open_handle(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(cli, "MAX_FILE_BYTES", 8)
+    target = tmp_path / "growing.txt"
+    target.write_bytes(b"123456789")
+    for command in ("sha256", "text-stats"):
+        result = runner.invoke(app, [command, str(target)])
+        assert result.exit_code != 0
+        assert "64 MiB inspection limit" in result.output
 
 
 def test_missing_file_rejected(tmp_path) -> None:
